@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link type="text/css" rel="stylesheet" href="style.css"/>
+  </head>
+  <body>
+    <!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>METALCORT - Sistema de Facturación</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI', sans-serif;
+}
+
+body{
+    background: linear-gradient(135deg,#0f172a,#1e3a8a);
+    color:white;
+    padding:20px;
+}
+
+.container{
+    max-width:1100px;
+    margin:auto;
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(10px);
+    padding:30px;
+    border-radius:15px;
+    box-shadow:0 0 25px rgba(0,0,0,0.5);
+}
+
+h1{
+    text-align:center;
+    margin-bottom:20px;
+    color:#60a5fa;
+}
+
+.form-section{
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+    gap:15px;
+    margin-bottom:20px;
+}
+
+input{
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    outline:none;
+}
+
+button{
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:10px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    background:#1d4ed8;
+}
+
+table{
+    width:100%;
+    margin-top:20px;
+    border-collapse:collapse;
+}
+
+th,td{
+    padding:10px;
+    text-align:center;
+}
+
+th{
+    background:#1e40af;
+}
+
+tr:nth-child(even){
+    background:rgba(255,255,255,0.05);
+}
+
+.total-section{
+    margin-top:20px;
+    text-align:right;
+    font-size:18px;
+}
+
+.total-section p{
+    margin:5px 0;
+}
+
+.footer{
+    text-align:center;
+    margin-top:20px;
+    color:#93c5fd;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>METALCORT - Sistema de Facturación</h1>
+
+<p><strong>N° Factura:</strong> <span id="numeroFactura"></span></p>
+
+<div class="form-section">
+    <input type="text" id="cliente" placeholder="Nombre del Cliente">
+    <input type="text" id="descripcion" placeholder="Descripción (Ej: Corte Láser)">
+    <input type="number" id="cantidad" placeholder="Cantidad">
+    <input type="number" id="precio" placeholder="Precio Unitario">
+    <button onclick="agregarProducto()">Agregar</button>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Descripción</th>
+            <th>Cantidad</th>
+            <th>Precio Unit.</th>
+            <th>Total</th>
+            <th>Eliminar</th>
+        </tr>
+    </thead>
+    <tbody id="tablaProductos"></tbody>
+</table>
+
+<div class="total-section">
+    <p>Subtotal: $<span id="subtotal">0</span></p>
+    <p>IVA (19%): $<span id="iva">0</span></p>
+    <p><strong>Total: $<span id="total">0</span></strong></p>
+</div>
+
+<div class="footer">
+    METALCORT © 2026 - Corte y Doblado de Metales
+</div>
+
+</div>
+
+<script>
+let subtotal = 0;
+let contadorFactura = Math.floor(Math.random()*10000);
+
+document.getElementById("numeroFactura").innerText = "MC-" + contadorFactura;
+
+function agregarProducto(){
+    const descripcion = document.getElementById("descripcion").value;
+    const cantidad = parseFloat(document.getElementById("cantidad").value);
+    const precio = parseFloat(document.getElementById("precio").value);
+
+    if(!descripcion || !cantidad || !precio){
+        alert("Complete todos los campos");
+        return;
+    }
+
+    const totalProducto = cantidad * precio;
+    subtotal += totalProducto;
+
+    const fila = document.createElement("tr");
+
+    fila.innerHTML = `
+        <td>${descripcion}</td>
+        <td>${cantidad}</td>
+        <td>$${precio.toFixed(2)}</td>
+        <td>$${totalProducto.toFixed(2)}</td>
+        <td><button onclick="eliminarProducto(this, ${totalProducto})">X</button></td>
+    `;
+
+    document.getElementById("tablaProductos").appendChild(fila);
+
+    actualizarTotales();
+
+    document.getElementById("descripcion").value="";
+    document.getElementById("cantidad").value="";
+    document.getElementById("precio").value="";
+}
+
+function eliminarProducto(boton, totalProducto){
+    boton.parentElement.parentElement.remove();
+    subtotal -= totalProducto;
+    actualizarTotales();
+}
+
+function actualizarTotales(){
+    const iva = subtotal * 0.19;
+    const total = subtotal + iva;
+
+    document.getElementById("subtotal").innerText = subtotal.toFixed(2);
+    document.getElementById("iva").innerText = iva.toFixed(2);
+    document.getElementById("total").innerText = total.toFixed(2);
+}
+</script>
+
+</body>
+</html>
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
