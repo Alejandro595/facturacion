@@ -12,12 +12,7 @@
 <title>METALCORT - Sistema de Facturación</title>
 
 <style>
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:'Segoe UI', sans-serif;
-}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI', sans-serif;}
 
 body{
     background: linear-gradient(135deg,#0f172a,#1e3a8a);
@@ -35,11 +30,7 @@ body{
     box-shadow:0 0 25px rgba(0,0,0,0.5);
 }
 
-h1{
-    text-align:center;
-    margin-bottom:20px;
-    color:#60a5fa;
-}
+h1{text-align:center;margin-bottom:20px;color:#60a5fa;}
 
 .form-section{
     display:grid;
@@ -52,7 +43,6 @@ input{
     padding:10px;
     border:none;
     border-radius:8px;
-    outline:none;
 }
 
 button{
@@ -62,11 +52,6 @@ button{
     padding:10px;
     border-radius:8px;
     cursor:pointer;
-    transition:0.3s;
-}
-
-button:hover{
-    background:#1d4ed8;
 }
 
 table{
@@ -80,22 +65,12 @@ th,td{
     text-align:center;
 }
 
-th{
-    background:#1e40af;
-}
-
-tr:nth-child(even){
-    background:rgba(255,255,255,0.05);
-}
+th{background:#1e40af;}
+tr:nth-child(even){background:rgba(255,255,255,0.05);}
 
 .total-section{
     margin-top:20px;
     text-align:right;
-    font-size:18px;
-}
-
-.total-section p{
-    margin:5px 0;
 }
 
 .footer{
@@ -116,81 +91,130 @@ tr:nth-child(even){
 
 <div class="form-section">
     <input type="text" id="cliente" placeholder="Nombre del Cliente">
-    <input type="text" id="descripcion" placeholder="Descripción (Ej: Corte Láser)">
+    <input type="text" id="descripcion" placeholder="Descripción">
     <input type="number" id="cantidad" placeholder="Cantidad">
     <input type="number" id="precio" placeholder="Precio Unitario">
     <button onclick="agregarProducto()">Agregar</button>
 </div>
 
 <table>
-    <thead>
-        <tr>
-            <th>Descripción</th>
-            <th>Cantidad</th>
-            <th>Precio Unit.</th>
-            <th>Total</th>
-            <th>Eliminar</th>
-        </tr>
-    </thead>
-    <tbody id="tablaProductos"></tbody>
+<thead>
+<tr>
+<th>Descripción</th>
+<th>Cantidad</th>
+<th>Precio</th>
+<th>Total</th>
+<th>Eliminar</th>
+</tr>
+</thead>
+<tbody id="tablaProductos"></tbody>
 </table>
 
 <div class="total-section">
-    <p>Subtotal: $<span id="subtotal">0</span></p>
-    <p>IVA (19%): $<span id="iva">0</span></p>
-    <p><strong>Total: $<span id="total">0</span></strong></p>
+<p>Subtotal: $<span id="subtotal">0</span></p>
+<p>IVA (19%): $<span id="iva">0</span></p>
+<p><strong>Total: $<span id="total">0</span></strong></p>
 </div>
 
 <div class="footer">
-    METALCORT © 2026 - Corte y Doblado de Metales
+METALCORT © 2026
 </div>
 
 </div>
 
+<!-- 🔥 FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCEF...",
+  authDomain: "facturacion-89a12.firebaseapp.com",
+  projectId: "facturacion-89a12",
+  storageBucket: "facturacion-89a12.appspot.com",
+  messagingSenderId: "742049583581",
+  appId: "1:742049583581:web:0149f23d8960d163766634"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.db = db;
+window.fb = { collection, addDoc, getDocs, deleteDoc, doc };
+</script>
+
+<!-- 🚀 LÓGICA -->
 <script>
 let subtotal = 0;
 let contadorFactura = Math.floor(Math.random()*10000);
 
 document.getElementById("numeroFactura").innerText = "MC-" + contadorFactura;
 
-function agregarProducto(){
+// ➕ AGREGAR
+async function agregarProducto(){
+    const cliente = document.getElementById("cliente").value;
     const descripcion = document.getElementById("descripcion").value;
     const cantidad = parseFloat(document.getElementById("cantidad").value);
     const precio = parseFloat(document.getElementById("precio").value);
 
-    if(!descripcion || !cantidad || !precio){
-        alert("Complete todos los campos");
+    if(!cliente || !descripcion || !cantidad || !precio){
+        alert("Completa todos los campos");
         return;
     }
 
     const totalProducto = cantidad * precio;
-    subtotal += totalProducto;
 
-    const fila = document.createElement("tr");
+    const { collection, addDoc } = window.fb;
 
-    fila.innerHTML = `
-        <td>${descripcion}</td>
-        <td>${cantidad}</td>
-        <td>$${precio.toFixed(2)}</td>
-        <td>$${totalProducto.toFixed(2)}</td>
-        <td><button onclick="eliminarProducto(this, ${totalProducto})">X</button></td>
-    `;
+    await addDoc(collection(window.db, "facturas"), {
+        cliente,
+        descripcion,
+        cantidad,
+        precio,
+        total: totalProducto,
+        timestamp: Date.now()
+    });
 
-    document.getElementById("tablaProductos").appendChild(fila);
-
-    actualizarTotales();
-
-    document.getElementById("descripcion").value="";
-    document.getElementById("cantidad").value="";
-    document.getElementById("precio").value="";
+    cargarFacturas();
 }
 
-function eliminarProducto(boton, totalProducto){
-    boton.parentElement.parentElement.remove();
-    subtotal -= totalProducto;
+// 📄 CARGAR
+async function cargarFacturas(){
+    const { collection, getDocs } = window.fb;
+    const datos = await getDocs(collection(window.db, "facturas"));
+
+    const tabla = document.getElementById("tablaProductos");
+    tabla.innerHTML = "";
+    subtotal = 0;
+
+    datos.forEach((docSnap)=>{
+        const d = docSnap.data();
+
+        subtotal += d.total;
+
+        const fila = `
+        <tr>
+            <td>${d.descripcion}</td>
+            <td>${d.cantidad}</td>
+            <td>$${d.precio.toFixed(2)}</td>
+            <td>$${d.total.toFixed(2)}</td>
+            <td><button onclick="eliminarFactura('${docSnap.id}')">X</button></td>
+        </tr>
+        `;
+        tabla.innerHTML += fila;
+    });
+
     actualizarTotales();
 }
 
+// 🗑️ ELIMINAR
+async function eliminarFactura(id){
+    const { deleteDoc, doc } = window.fb;
+    await deleteDoc(doc(window.db, "facturas", id));
+    cargarFacturas();
+}
+
+// 💰 TOTALES
 function actualizarTotales(){
     const iva = subtotal * 0.19;
     const total = subtotal + iva;
@@ -199,6 +223,27 @@ function actualizarTotales(){
     document.getElementById("iva").innerText = iva.toFixed(2);
     document.getElementById("total").innerText = total.toFixed(2);
 }
+
+// ⏱️ LIMPIEZA AUTOMÁTICA (24h)
+async function limpiarFacturas(){
+    const { collection, getDocs, deleteDoc, doc } = window.fb;
+
+    const ahora = Date.now();
+    const limite = 24 * 60 * 60 * 1000;
+
+    const datos = await getDocs(collection(window.db, "facturas"));
+
+    datos.forEach(async (item)=>{
+        if(ahora - item.data().timestamp > limite){
+            await deleteDoc(doc(window.db, "facturas", item.id));
+        }
+    });
+}
+
+// 🚀 INICIO
+cargarFacturas();
+limpiarFacturas();
+setInterval(limpiarFacturas, 3600000);
 </script>
 
 </body>
