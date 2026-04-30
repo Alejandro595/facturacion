@@ -44,6 +44,7 @@ input{
 }
 
 button{
+    background:#2563eb;
     color:white;
     border:none;
     padding:10px;
@@ -51,20 +52,8 @@ button{
     cursor:pointer;
 }
 
-.btn-user{background:#3b82f6;}
-.btn-admin{background:#1d4ed8;}
-.btn-voz{background:#60a5fa;}
-
+.admin-btn{background:#dc2626;}
 .hidden{display:none;}
-
-.center-menu{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    height:70vh;
-    gap:20px;
-}
 
 table{
     width:100%;
@@ -87,18 +76,15 @@ tr:nth-child(even){background:rgba(255,255,255,0.05);}
 <div class="container">
 
 <!-- INICIO -->
-<div id="inicio" class="center-menu">
+<div id="inicio">
 <h1>METALCORT</h1>
 
-<button class="btn-user" onclick="entrarUsuario()">Usuario</button>
-<button class="btn-admin" onclick="mostrarLogin()">Administrador</button>
-<button class="btn-voz" onclick="loginVozDirecto()">Entrar a admin con voz</button>
+<button onclick="entrarUsuario()">Usuario</button>
+<button class="admin-btn" onclick="mostrarLogin()">Administrador</button>
 
 <div id="loginAdmin" class="hidden">
 <input type="password" id="passAdmin" placeholder="Contraseña">
 <button onclick="entrarAdmin()">Entrar</button>
-<button onclick="registrarVoz()">🎤 Registrar voz</button>
-<p id="estadoVoz"></p>
 </div>
 </div>
 
@@ -194,7 +180,6 @@ window.fb = { collection, addDoc, getDocs, deleteDoc, doc, updateDoc };
 
 const PASSWORD = "cortadorademetales";
 
-// NAV
 function entrarUsuario(){
     document.getElementById("inicio").classList.add("hidden");
     document.getElementById("usuarioPanel").classList.remove("hidden");
@@ -223,7 +208,9 @@ function generarID(){
 
 // FACTURA
 async function agregarFactura(admin=false){
+
     try{
+
         const clienteInput = document.getElementById(admin ? "clienteA" : "cliente");
         const descripcionInput = document.getElementById(admin ? "descripcionA" : "descripcion");
         const cantidadInput = document.getElementById(admin ? "cantidadA" : "cantidad");
@@ -238,6 +225,7 @@ async function agregarFactura(admin=false){
         }
 
         const snapshot = await fb.getDocs(fb.collection(db,"inventario"));
+
         let producto = null;
 
         snapshot.forEach(docSnap=>{
@@ -256,7 +244,11 @@ async function agregarFactura(admin=false){
         let nuevosLotes = [];
 
         for(let lote of producto.lotes || []){
-            if(restante<=0){ nuevosLotes.push(lote); continue; }
+
+            if(restante <= 0){
+                nuevosLotes.push(lote);
+                continue;
+            }
 
             if(lote.cantidad <= restante){
                 restante -= lote.cantidad;
@@ -269,12 +261,14 @@ async function agregarFactura(admin=false){
             }
         }
 
-        if(restante>0){
+        if(restante > 0){
             alert("Stock insuficiente");
             return;
         }
 
-        await fb.updateDoc(fb.doc(db,"inventario",producto.id),{lotes:nuevosLotes});
+        await fb.updateDoc(fb.doc(db,"inventario",producto.id),{
+            lotes: nuevosLotes
+        });
 
         const subtotal = cantidad * producto.precio;
         const iva = subtotal * 0.19;
@@ -291,9 +285,9 @@ async function agregarFactura(admin=false){
             fecha: Date.now()
         });
 
-        clienteInput.value="";
-        descripcionInput.value="";
-        cantidadInput.value="";
+        clienteInput.value = "";
+        descripcionInput.value = "";
+        cantidadInput.value = "";
 
         alert("Factura creada correctamente");
 
@@ -341,42 +335,66 @@ async function eliminarInv(id){
     cargarInventario();
 }
 
-// VOZ
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = new SpeechRecognition();
+// FACTURAS
+async function cargarFacturas(){
+    const datos=await fb.getDocs(fb.collection(db,"facturas"));
+    document.getElementById("tablaFacturas").innerHTML="";
 
-recognition.lang = "es-ES";
+    datos.forEach(d=>{
+        const f=d.data();
 
-function registrarVoz(){
-    document.getElementById("estadoVoz").innerText="Habla...";
-    recognition.start();
-
-    recognition.onresult = function(e){
-        const texto=e.results[0][0].transcript.toLowerCase().trim();
-        localStorage.setItem("vozAdmin",texto);
-        document.getElementById("estadoVoz").innerText="Guardado: "+texto;
-    };
+        document.getElementById("tablaFacturas").innerHTML+=`
+        <tr>
+        <td>${f.idFactura}</td>
+        <td>${f.cliente}</td>
+        <td>$${f.subtotal}</td>
+        <td>$${f.iva}</td>
+        <td>$${f.total}</td>
+        <td><button onclick="eliminarFactura('${d.id}')">X</button></td>
+        </tr>`;
+    });
 }
 
-function loginVozDirecto(){
-    const guardado=localStorage.getItem("vozAdmin");
-    if(!guardado){ alert("Registra voz primero"); return; }
+async function eliminarFactura(id){
+    await fb.deleteDoc(fb.doc(db,"facturas",id));
+    cargarFacturas();
+}
 
-    alert("Habla...");
-    recognition.start();
+// DESCARGAS
+function descargarHTML(contenido,nombre){
+    const blob=new Blob([contenido],{type:"application/vnd.ms-excel"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download=nombre;
+    a.click();
+}
 
-    recognition.onresult = function(e){
-        const texto=e.results[0][0].transcript.toLowerCase().trim();
+async function descargarFacturas(){
+    const datos=await fb.getDocs(fb.collection(db,"facturas"));
+    let html="<table border='1'><tr><th>ID</th><th>Cliente</th><th>Producto</th><th>Total</th></tr>";
 
-        if(texto===guardado){
-            document.getElementById("inicio").classList.add("hidden");
-            document.getElementById("adminPanel").classList.remove("hidden");
-            cargarInventario();
-            cargarFacturas();
-        }else{
-            alert("No coincide");
-        }
-    };
+    datos.forEach(d=>{
+        const f=d.data();
+        html+=`<tr><td>${f.idFactura}</td><td>${f.cliente}</td><td>${f.descripcion}</td><td>${f.total}</td></tr>`;
+    });
+
+    html+="</table>";
+    descargarHTML(html,"facturas.xls");
+}
+
+async function descargarInventario(){
+    const datos=await fb.getDocs(fb.collection(db,"inventario"));
+    let html="<table border='1'><tr><th>Producto</th><th>Stock</th><th>Precio</th></tr>";
+
+    datos.forEach(d=>{
+        const data=d.data();
+        const stock=(data.lotes||[]).reduce((a,l)=>a+l.cantidad,0);
+        html+=`<tr><td>${data.nombre}</td><td>${stock}</td><td>${data.precio}</td></tr>`;
+    });
+
+    html+="</table>";
+    descargarHTML(html,"inventario.xls");
 }
 
 </script>
